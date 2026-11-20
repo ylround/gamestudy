@@ -1,0 +1,26 @@
+{
+  "name": "math-realms",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "数境勇者 / Math Realms — a Prodigy-inspired math RPG H5 with a server-authoritative learning loop.",
+  "scripts": {
+    "start": "node server/index.ts",
+    "dev": "node --watch server/index.ts",
+    "seed": "node server/seed/run.ts",
+    "reset": "node server/seed/reset.ts",
+    "test": "node --test tests/*.test.js server/tests/*.test.ts",
+    "test:e2e": "node e2e/run.mjs",
+    "screenshots": "node e2e/screenshots.mjs",
+    "test:layout": "node e2e/layout.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1"
+  }
+}
