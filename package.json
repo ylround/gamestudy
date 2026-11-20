@@ -11,7 +11,8 @@
     "reset": "node server/seed/reset.ts",
     "test": "node --test tests/*.test.js server/tests/*.test.ts",
     "test:e2e": "node e2e/run.mjs",
-    "screenshots": "node e2e/screenshots.mjs"
+    "screenshots": "node e2e/screenshots.mjs",
+    "test:layout": "node e2e/layout.mjs"
   },
   "engines": {
     "node": ">=24.0.0"
