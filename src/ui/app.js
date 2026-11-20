@@ -669,6 +669,7 @@ function selectGrade(grade) {
   saveState(app.state);
   playSound('click');
   render({ keepScroll: true });
+  document.querySelector(`[data-action="select-grade"][data-grade="${value}"]`)?.focus({ preventScroll: true });
 }
 
 function applyLanguage(lang) {
@@ -690,6 +691,7 @@ function toggleLanguage() {
   saveState(app.state);
   playSound('click');
   render({ keepScroll: true });
+  document.querySelector('[data-action="toggle-lang"]')?.focus({ preventScroll: true });
 }
 
 function toggleSound() {
@@ -697,6 +699,7 @@ function toggleSound() {
   saveState(app.state);
   if (app.state.settings.sound) playSound('click');
   renderTopbar();
+  document.querySelector('[data-action="toggle-sound"]')?.focus({ preventScroll: true });
 }
 
 function showToast(message) {
