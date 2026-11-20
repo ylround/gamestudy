@@ -1,14 +1,25 @@
 {
   "name": "math-realms",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Math Realms — a Prodigy-inspired monster-battle math RPG with Chinese and English UI.",
+  "description": "数境勇者 / Math Realms — a Prodigy-inspired math RPG H5 with a server-authoritative learning loop.",
   "scripts": {
-    "start": "node scripts/serve.mjs",
-    "test": "node --test tests/*.test.js"
+    "start": "node server/index.ts",
+    "dev": "node --watch server/index.ts",
+    "seed": "node server/seed/run.ts",
+    "reset": "node server/seed/reset.ts",
+    "test": "node --test tests/*.test.js server/tests/*.test.ts",
+    "test:e2e": "node e2e/run.mjs",
+    "screenshots": "node e2e/screenshots.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1"
   }
 }
