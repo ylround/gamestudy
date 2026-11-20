@@ -34,7 +34,6 @@ try {
     const result = await page.evaluate(() => window.__mathrealms.app.result.result);
     assert.equal(result.victory, true);
     assert.ok(result.correct >= 1);
-    await page.screenshot({ path: 'docs/screenshots/p0/after-result-zh-desktop.png' });
     await openScreen(page, 'mistakes');
     assert.ok((await page.locator('.mistake-card').count()) >= 1);
     await openScreen(page, 'growth');
@@ -95,7 +94,6 @@ try {
     await page.locator('[data-action="dialog-confirm"]').click();
     await page.waitForTimeout(800);
     assert.ok((await page.locator('#toast').innerText()).includes('绑定成功'));
-    await page.screenshot({ path: 'docs/screenshots/p0/after-parent-zh-desktop.png' });
     await page.click('[data-action="nav"][data-screen="settings"]');
     await page.waitForTimeout(400);
     assert.equal(await page.evaluate(() => window.__mathrealms.app.screen), 'settings');
@@ -150,7 +148,6 @@ E2E-IMP-001,MATH-RJ-G4-T1-NUM-03,SINGLE,2,"7 × 8 = ?","7 × 8 = ?","先想乘�
     await page.locator('[data-action="ai-approve"]').first().click();
     await page.waitForTimeout(700);
     assert.ok((await page.locator('.badge--green', { hasText: 'APPROVED' }).count()) >= 1);
-    await page.screenshot({ path: 'docs/screenshots/p0/after-admin-ai-zh-desktop.png' });
     assert.deepEqual(errors, []);
     await context.close();
   });
