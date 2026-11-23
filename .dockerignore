@@ -1,0 +1,9 @@
+node_modules
+data
+.git
+.context
+docs/screenshots
+test-results
+playwright-report
+*.log
+e2e
