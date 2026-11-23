@@ -62,7 +62,7 @@
 | 课程与题库 | `knowledge_points`、`questions`、`question_versions`、`question_stats` |
 | 导入/AI | `import_batches`、`ai_jobs`、`ai_items` |
 | 学习与答题 | `quiz_sessions`、`session_questions`、`mastery_records`、`mistakes` |
-| 游戏与奖励 | `game_saves`、`currency_accounts`、`currency_transactions`、`reward_records`、`stage_results` |
+| 游戏与奖励 | `game_saves`、`character_saves`、`currency_accounts`、`currency_transactions`、`reward_records`、`stage_results` |
 | 运营与审计 | `audit_logs`、`configs` |
 
 关键约束：
@@ -76,7 +76,8 @@
 ## 5. 判题与奖励规则
 
 - 正确答案只在 `session_questions.answer_json` 中，取题接口（`GET /quiz-sessions/:id`、`next-question`）不返回。
-- 答对：伤害 `22 + min(combo, 3) × 6`，即 22/28/34/40；答错：勇者 -20，连击中断。
+- 答对：伤害 `22 + min(combo, 3) × 6 + 角色连击加成 + 角色固定加成`（默认 22/28/34/40）；答错：勇者受到 `max(8, 20 - 角色反击减免)`，连击中断。
+- 角色：每名学生有 `character_saves`（独立 XP/等级/选中），战斗会话创建时固定 `characterId`；关卡难度 1/2/3 映射绝招 Tier 1/2/3，角色等级 3/5 解锁进阶/终极服饰与绝招。
 - 结算：怪物 HP ≤ 0，或全部题目答完且正确率 ≥ 60% 且勇者存活 → 胜利；勇者 HP ≤ 0 → 失败。
 - 星星：全对 3 星；正确率 ≥ 80% 2 星；胜利至少 1 星；失败 0 星。
 - 经验：`正确数 × 12 + 胜利 20 + 星星 × 5`；金币：`正确数 × 6 + 星星 × 5`（失败按正确数少量发放）。
