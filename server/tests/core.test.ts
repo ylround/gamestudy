@@ -12,6 +12,7 @@ import { createSession, getSession, nextQuestion, requestHint, result, submitAns
 import { createTemplateXlsx, parseImportPayload, validateImport, createBatch, commitBatch, rollbackBatch } from '../modules/imports.ts';
 import { createJob, getJob, processJob, reviewItem } from '../modules/ai.ts';
 import { stageStates } from '../modules/common.ts';
+import { characterList, selectCharacterForUser } from '../modules/characters.ts';
 
 let dir = '';
 let db: any;
@@ -130,6 +131,39 @@ test('wrong answers create mistakes, hints are gated and resuming an active sess
   assert.ok(get<any>(db, 'SELECT id FROM mistakes WHERE student_id = ? AND resolved = 0', studentId));
   const retry = submitAnswer(db, studentId, sessionId, { seq: 0, answer: wrong, timeMs: 3000 });
   assert.equal(retry.idempotent, true);
+});
+
+test('character selection changes the combat style and difficulty scales the ultimate tier', () => {
+  const selected = selectCharacterForUser(db, studentId, 'frost');
+  assert.equal(selected.selected.id, 'frost');
+  assert.equal(selected.selected.counterReduction, 4);
+  const created = createSession(db, studentId, { kind: 'STAGE', stageKey: 'g4-numbers-1' });
+  const row = all<any>(db, 'SELECT * FROM session_questions WHERE session_id = ? ORDER BY seq LIMIT 1', created.session.id)[0];
+  const answer = JSON.parse(row.answer_json);
+  const wrong = answer.kind === 'SINGLE'
+    ? { optionKey: answer.value === 'A' ? 'B' : 'A' }
+    : answer.kind === 'JUDGE'
+      ? { optionKey: answer.value ? 'F' : 'T' }
+      : { value: '-999999' };
+  const response = submitAnswer(db, studentId, created.session.id, { seq: 0, answer: wrong, timeMs: 3000 });
+  assert.equal(response.character.id, 'frost');
+  assert.equal(response.heroHp, 84);
+  const practice = createSession(db, studentId, { kind: 'PRACTICE', knowledgeCode: 'MATH-RJ-G4-T1-NUM-03' });
+  const practiceRow = all<any>(db, 'SELECT * FROM session_questions WHERE session_id = ? ORDER BY seq LIMIT 1', practice.session.id)[0];
+  const practiceAnswer = JSON.parse(practiceRow.answer_json);
+  const correct = practiceAnswer.kind === 'SINGLE'
+    ? { optionKey: practiceAnswer.value }
+    : practiceAnswer.kind === 'JUDGE'
+      ? { optionKey: practiceAnswer.value ? 'T' : 'F' }
+      : { value: practiceAnswer.value };
+  const practiceResponse = submitAnswer(db, studentId, practice.session.id, { seq: 0, answer: correct, timeMs: 4000 });
+  assert.equal(practiceResponse.cast.tier, 3);
+  assert.equal(practiceResponse.cast.ultimate, true);
+  assert.ok(practiceResponse.cast.name.zh);
+  const roster = characterList(db, studentId);
+  assert.equal(roster.length, 3);
+  assert.ok(roster.find((item: any) => item.id === 'frost').outfitTier >= 2);
+  selectCharacterForUser(db, studentId, 'pyra');
 });
 
 test('XLSX template round-trips and CSV validation catches bad rows', async () => {

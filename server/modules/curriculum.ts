@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { all, get, json, now, parseJson, run } from '../lib/db.ts';
 import { HttpError, optionalString, requireInt } from '../lib/http.ts';
 import { levelForXp } from '../lib/types.ts';
+import { characterList, selectedCharacter } from './characters.ts';
 import {
   activeSessionFor,
   DEFAULT_SETTINGS,
@@ -60,14 +61,18 @@ export function saveState(db: DatabaseSync, userId: string) {
   const profile = getProfile(db, userId);
   const save = ensureGameSave(db, userId);
   const balances = ensureBalances(db, userId);
-  const progress = levelForXp(Number(save.xp) || 0);
+  const character = selectedCharacter(db, userId);
+  const xp = character ? Number(character.row.xp) || 0 : Number(save.xp) || 0;
+  const progress = levelForXp(xp);
   const grade = Number(profile?.grade) || 4;
   return {
     user: publicUser(db, row),
     profile: publicProfile(profile),
     family: familyBundle(db, row),
+    character: character ? character.summary : null,
+    characters: row.role === 'student' ? characterList(db, userId) : [],
     save: {
-      xp: Number(save.xp) || 0,
+      xp,
       level: progress.level,
       levelProgress: progress,
       coins: balances.coins,

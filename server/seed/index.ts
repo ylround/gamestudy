@@ -4,6 +4,7 @@ import { get, json, now, run, transaction } from '../lib/db.ts';
 import { hashPassword } from '../lib/auth.ts';
 import { buildKnowledgePoints, generateSeedQuestions, knowledgeCode, MONSTERS, type SeedKnowledgePoint } from './content.ts';
 import { levelForXp, stageKey } from '../lib/types.ts';
+import { ensureCharacters } from '../modules/characters.ts';
 
 function id(prefix = '') {
   return `${prefix}${randomBytes(10).toString('hex')}`;
@@ -404,6 +405,10 @@ export function seedDatabase(db: DatabaseSync) {
     if (!get<any>(db, "SELECT id FROM quiz_sessions WHERE id = 'demo-session-1'")) {
       seedDemoProgress(db, xiaoyu, lele);
     }
+    ensureCharacters(db, xiaoyu);
+    ensureCharacters(db, lele);
+    run(db, "UPDATE character_saves SET xp = 520 WHERE user_id = ? AND character_id = 'frost' AND xp = 0", xiaoyu);
+    run(db, "UPDATE character_saves SET xp = 100 WHERE user_id = ? AND character_id = 'volt' AND xp = 0", xiaoyu);
 
     const configs = [
       ['announcement', { zh: '欢迎来到数境勇者！答对题目就能施法，连续答对伤害更高。', en: 'Welcome to Math Realms! Answer correctly to cast spells — streaks deal more damage.' }],

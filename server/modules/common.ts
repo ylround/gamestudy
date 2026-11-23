@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { all, get, json, now, parseJson, run } from '../lib/db.ts';
 import { DOMAIN_META, MONSTERS, levelForXp, stageKey } from '../lib/types.ts';
+import { selectedCharacter } from './characters.ts';
 
 export interface ProfileRow {
   user_id: string;
@@ -71,7 +72,9 @@ export function publicUser(db: DatabaseSync, row: any) {
   const profile = getProfile(db, row.id);
   const balances = ensureBalances(db, row.id);
   const save = ensureGameSave(db, row.id);
-  const progress = levelForXp(Number(save.xp) || 0);
+  const character = selectedCharacter(db, row.id);
+  const xp = character ? Number(character.row.xp) || 0 : Number(save.xp) || 0;
+  const progress = levelForXp(xp);
   return {
     id: row.id,
     username: row.username,
@@ -79,8 +82,9 @@ export function publicUser(db: DatabaseSync, row: any) {
     displayName: row.display_name,
     profile: publicProfile(profile),
     balances,
+    character: character ? character.summary : null,
     save: {
-      xp: Number(save.xp) || 0,
+      xp,
       level: progress.level,
       levelProgress: progress,
       settings: { ...DEFAULT_SETTINGS, ...parseJson(save.settings_json, {}) },

@@ -4,8 +4,10 @@ import { all, get, json, now, parseJson, run, transaction } from '../lib/db.ts';
 import { HttpError, requireInt, requireString } from '../lib/http.ts';
 import { judge, answerLabel } from '../lib/judge.ts';
 import { levelForXp, MONSTERS, stageFromKey, type QuestionAnswer, type QuestionContent } from '../lib/types.ts';
+import { CHARACTERS, castFor, characterById } from '../lib/characters.ts';
 import { ensureBalances, ensureGameSave, getProfile, stageStates } from './common.ts';
 import { knowledgeCode } from '../seed/content.ts';
+import { awardCharacterXp, selectedCharacter } from './characters.ts';
 
 const DEFAULT_QUESTION_COUNT = 8;
 
@@ -73,6 +75,7 @@ function sessionMeta(session: any, state: any, total: number) {
     correct: Number(state.correct) || 0,
     asked: Number(state.asked) || 0,
     pending: Boolean(state.pending),
+    characterId: state.characterId || null,
     startedAt: session.started_at,
     updatedAt: session.updated_at,
   };
@@ -195,9 +198,12 @@ export function createSession(db: DatabaseSync, studentId: string, body: any) {
   const stageNumber = Number(String(point.code).slice(-1)) || 1;
   const monster = MONSTERS[Math.min(stageNumber - 1, MONSTERS.length - 1)];
   const maxHp = kind === 'STAGE' ? monster.hp : 150;
+  const chosenCharacter = selectedCharacter(db, studentId);
   const state = {
     monster: { id: monster.id, nameZh: monster.zh, nameEn: monster.en, hp: maxHp, maxHp },
     hero: { hp: 100, maxHp: 100 },
+    characterId: chosenCharacter?.def.id || 'pyra',
+    difficulty: Number(point.difficulty) || 1,
     index: 0,
     pending: false,
     isFinal: false,
@@ -271,19 +277,25 @@ export function submitAnswer(db: DatabaseSync, studentId: string, sessionId: str
   const judged = judge(content, answer, submitted);
   const hintsUsed = Number(row.hints_used) || 0;
 
+  const character = characterById(state.characterId) || selectedCharacter(db, studentId)?.def || CHARACTERS[0];
+  const streak = Number(state.combo) || 0;
   if (judged.correct) {
-    const streak = Number(state.combo) || 0;
-    const damage = 22 + Math.min(streak, 3) * 6;
+    const comboSteps = Math.min(streak, 3);
+    const damage = 22 + comboSteps * 6 + character.comboBonus * comboSteps + character.damageBonus;
     state.monster.hp = Math.max(0, Number(state.monster.hp) - damage);
     state.combo = streak + 1;
     state.bestStreak = Math.max(Number(state.bestStreak) || 0, state.combo);
     state.correct = (Number(state.correct) || 0) + 1;
     state.damage = damage;
   } else {
-    state.hero.hp = Math.max(0, Number(state.hero.hp) - 20);
+    const counter = Math.max(8, 20 - character.counterReduction);
+    state.hero.hp = Math.max(0, Number(state.hero.hp) - counter);
     state.combo = 0;
-    state.damage = 20;
+    state.damage = counter;
   }
+  const chosenForLevel = selectedCharacter(db, studentId);
+  const characterLevel = chosenForLevel?.def.id === character.id ? chosenForLevel.summary.level : 1;
+  const cast = castFor(character, Number(state.difficulty) || 1, characterLevel);
   state.asked = (Number(state.asked) || 0) + 1;
   state.pending = true;
   state.isFinal =
@@ -363,6 +375,15 @@ export function submitAnswer(db: DatabaseSync, studentId: string, sessionId: str
     isFinal: state.isFinal,
     mastery: { score: masteryScore, delta: masteryScore - oldScore },
     hintsUsed,
+    character: {
+      id: character.id,
+      name: character.name,
+      title: character.title,
+      element: character.element,
+      color: character.color,
+      trait: character.trait,
+    },
+    cast,
   };
 
   transaction(db, () => {
@@ -462,8 +483,10 @@ export function result(db: DatabaseSync, studentId: string, sessionId: string) {
   const coins = victory ? correct * 6 + stars * 5 : Math.floor(correct * 2);
   const durationMs = rows.reduce((sum, row) => sum + (Number(row.time_ms) || 0), 0);
   const save = ensureGameSave(db, studentId);
-  const beforeLevel = levelForXp(Number(save.xp) || 0).level;
-  const afterProgress = levelForXp((Number(save.xp) || 0) + xp);
+  const characterId = state.characterId || selectedCharacter(db, studentId)?.def.id || 'pyra';
+  let characterAward: any = null;
+  let afterProgress = levelForXp(Number(save.xp) || 0);
+  let characterPayload: any = null;
   const balances = ensureBalances(db, studentId);
   const endedAt = now();
   const duration = Math.max(durationMs, new Date(endedAt).getTime() - new Date(session.started_at).getTime());
@@ -473,6 +496,25 @@ export function result(db: DatabaseSync, studentId: string, sessionId: string) {
   let starsAfter = balances.stars;
   if (!existingReward) {
     transaction(db, () => {
+      characterAward = awardCharacterXp(db, studentId, characterId, xp);
+      afterProgress = characterAward.after.levelProgress;
+      characterPayload = {
+        id: characterAward.def.id,
+        name: characterAward.def.name,
+        title: characterAward.def.title,
+        color: characterAward.def.color,
+        element: characterAward.def.element,
+        level: characterAward.after.level,
+        xp: characterAward.after.xp,
+        levelUp: characterAward.after.level > characterAward.before.level,
+        outfitTier: characterAward.after.outfitTier,
+        spellTier: characterAward.after.spellTier,
+        outfitName: characterAward.after.outfitName,
+        spellName: characterAward.after.spells[characterAward.after.spellTier - 1]?.name || null,
+        ultimate: characterAward.after.ultimate,
+        unlockedOutfit: characterAward.after.outfitTier > characterAward.before.outfitTier ? characterAward.after.outfitName : null,
+        unlockedSpell: characterAward.after.spellTier > characterAward.before.spellTier ? characterAward.after.spells[characterAward.after.spellTier - 1]?.name || null : null,
+      };
       run(
         db,
         'UPDATE game_saves SET xp = xp + ?, level = ?, updated_at = ? WHERE user_id = ?',
@@ -549,8 +591,9 @@ export function result(db: DatabaseSync, studentId: string, sessionId: string) {
         coins,
         starCurrency: stars,
         level: afterProgress.level,
-        levelUp: afterProgress.level > beforeLevel,
+        levelUp: Boolean(characterAward?.after.level > characterAward?.before.level),
         levelProgress: afterProgress,
+        character: characterPayload,
         balances: { coins: coinsAfter, stars: starsAfter },
         endedAt,
         kind: session.kind,

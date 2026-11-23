@@ -249,6 +249,15 @@ CREATE TABLE IF NOT EXISTS game_saves (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS character_saves (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  character_id TEXT NOT NULL,
+  xp INTEGER NOT NULL DEFAULT 0,
+  selected INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, character_id)
+);
+
 CREATE TABLE IF NOT EXISTS stage_results (
   student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   stage_key TEXT NOT NULL,
@@ -288,6 +297,7 @@ CREATE INDEX IF NOT EXISTS idx_family_parent ON family_links(parent_id, status);
 CREATE INDEX IF NOT EXISTS idx_sessions_student ON quiz_sessions(student_id, status);
 CREATE INDEX IF NOT EXISTS idx_session_questions ON session_questions(session_id, seq);
 CREATE INDEX IF NOT EXISTS idx_mistakes_student ON mistakes(student_id, resolved);
+CREATE INDEX IF NOT EXISTS idx_character_saves_user ON character_saves(user_id, selected);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
 `;
 

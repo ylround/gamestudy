@@ -114,6 +114,49 @@ try {
     await page.close();
   });
 
+
+  await check('student: character roster, picker and ultimate tier', async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(String(error)));
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+    await login(page, server.baseUrl, 'xiaoyu', 'demo1234');
+    await openScreen(page, 'growth');
+    assert.equal(await page.locator('.character-card').count(), 3);
+    await page.locator('[data-action="open-character-picker"]').click();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.character-pick').count(), 3);
+    await page.locator('.character-grid [data-action="select-character"][data-id="frost"]').click();
+    await page.waitForTimeout(700);
+    const heroHref = await page.locator('.growth-avatar use').first().getAttribute('href');
+    assert.equal(heroHref, '#char-frost');
+    await page.locator('.character-roster [data-action="select-character"][data-id="pyra"]').click();
+    await page.waitForTimeout(700);
+    assert.equal(await page.locator('.growth-avatar use').first().getAttribute('href'), '#char-pyra');
+    const student = db.prepare("SELECT id FROM users WHERE username = 'xiaoyu'").get();
+    db.prepare("INSERT OR REPLACE INTO stage_results (student_id, stage_key, stars, best_stars, correct, asked, updated_at) VALUES (?, 'g4-numbers-2', 1, 1, 7, 8, ?)").run(student.id, new Date().toISOString());
+    await openScreen(page, 'map');
+    await startStage(page, 'g4-numbers-3');
+    await answerCurrentCorrectly(page, db);
+    await page.waitForTimeout(220);
+    const battle = await page.evaluate(() => ({
+      cls: document.querySelector('.screen--battle')?.className || '',
+      rings: document.querySelectorAll('.fx-ultimate-ring').length,
+      sparks: document.querySelectorAll('.fx-spark').length,
+      cast: window.__mathrealms.app.feedback?.cast,
+    }));
+    assert.ok(battle.cls.includes('fx-tier-3'));
+    assert.equal(battle.rings, 1);
+    assert.equal(battle.sparks, 6);
+    assert.equal(battle.cast?.ultimate, true);
+    await page.locator('[data-action="leave-battle"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('.modal-actions [data-action="dialog-confirm"]').click();
+    await page.waitForTimeout(500);
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+
   await check('parent: login, multi-child report, settings', async () => {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const errors = [];

@@ -12,6 +12,8 @@ const app = {
   map: null,
   activeSession: null,
   announcement: null,
+  character: null,
+  characters: [],
   grade: 4,
   stage: null,
   session: null,
@@ -65,6 +67,16 @@ function locText(value) {
 
 function icon(name, className = '') {
   return `<svg class="icon ${className}" aria-hidden="true" focusable="false"><use href="#${name}"></use></svg>`;
+}
+
+function characterAvatar(id, tier, className = '') {
+  const safe = ['pyra', 'frost', 'volt'].includes(id) ? id : 'pyra';
+  const level = Number(tier) || 1;
+  return `<svg class="char-avatar ${className}" viewBox="0 0 220 260" aria-hidden="true">
+    <use href="#char-${safe}"></use>
+    ${level >= 2 ? `<use href="#outfit-${safe}-2"></use>` : ''}
+    ${level >= 3 ? `<use href="#outfit-${safe}-3"></use>` : ''}
+  </svg>`;
 }
 
 function starsHTML(stars, max = 3, className = '') {
@@ -357,12 +369,16 @@ function battleHTML() {
   const feedback = app.feedback;
   const answered = Boolean(feedback);
   const combo = Number(battle.combo) || 0;
+  const character = (app.characters || []).find((item) => item.id === (session.characterId || app.character?.id)) || app.character || { id: 'pyra', name: { zh: '焰羽', en: 'Pyra' }, color: '#fb923c', outfitTier: 1, spells: [] };
+  const castTier = Number(feedback?.cast?.tier) || 1;
+  const castName = feedback?.cast?.name || character.spells?.[0]?.name || { zh: '法术', en: 'Spell' };
+  const ultimate = Boolean(feedback?.cast?.ultimate);
   const monster = battle.monster || (stage ? { ...stage.monster, maxHp: stage.monster.hp } : { id: 'mossling', name: { zh: '怪物', en: 'Monster' }, hp: 130, maxHp: 130 });
   const hero = battle.hero || { hp: 100, maxHp: 100 };
   const finalClass = feedback && Number(feedback.monsterHp) <= 0 ? 'is-victory' : feedback && Number(feedback.heroHp) <= 0 ? 'is-defeat' : '';
   const phase = feedback ? (Number(feedback.monsterHp) <= 0 ? 'victory' : Number(feedback.heroHp) <= 0 ? 'defeat' : feedback.correct ? 'cast' : 'counter') : 'answer';
   return `
-    <section class="screen screen--battle ${feedback ? (feedback.correct ? 'is-correct' : 'is-wrong') : ''} ${finalClass}" data-phase="${phase}" style="--accent:${domain?.accent || '#8b5cf6'};--accent-soft:${domain?.accent || '#8b5cf6'}22">
+    <section class="screen screen--battle ${feedback ? (feedback.correct ? 'is-correct' : 'is-wrong') : ''} ${finalClass} char-${character.id} fx-tier-${castTier}" data-phase="${phase}" style="--accent:${domain?.accent || '#8b5cf6'};--accent-soft:${domain?.accent || '#8b5cf6'}22;--fx-color:${character.color || '#fb923c'}">
       <h1 class="visually-hidden">${locText(stage?.name)}</h1>
       <div class="battle-wrap">
         <div class="battle-toolbar">
@@ -373,10 +389,10 @@ function battleHTML() {
         </div>
         <div class="arena">
           <div class="arena-glow" aria-hidden="true"></div>
-          ${feedback ? `<span class="fx-projectile ${feedback.correct ? 'fx-projectile--hero' : 'fx-projectile--monster'}" aria-hidden="true"></span><span class="fx-spell ${feedback.correct ? 'fx-spell--cast' : 'fx-spell--counter'}" aria-hidden="true">${t(`domain.${domain?.id || 'numbers'}.spell`)}</span><span class="fx-flash" aria-hidden="true"></span><span class="fx-damage ${feedback.correct ? 'fx-damage--monster' : 'fx-damage--hero'}" aria-hidden="true">-${feedback.damage}</span>` : ''}
+          ${feedback ? `<span class="fx-projectile ${feedback.correct ? 'fx-projectile--hero' : 'fx-projectile--monster'} ${ultimate ? 'fx-projectile--ultimate' : ''}" aria-hidden="true"></span><span class="fx-spell ${feedback.correct ? 'fx-spell--cast' : 'fx-spell--counter'} ${ultimate ? 'fx-spell--ultimate' : ''}" aria-hidden="true">${ultimate ? `${t('battle.ultimate')} · ` : ''}${locText(castName)}</span><span class="fx-flash" aria-hidden="true"></span><span class="fx-damage ${feedback.correct ? 'fx-damage--monster' : 'fx-damage--hero'}" aria-hidden="true">-${feedback.damage}</span>${ultimate ? `<span class="fx-ultimate-ring" aria-hidden="true"></span>${[1, 2, 3, 4, 5, 6].map((index) => `<span class="fx-spark fx-spark--${index}" aria-hidden="true"></span>`).join('')}` : ''}` : ''}
           <div class="fighter fighter--hero">
             <div class="fighter-top"><span class="fighter-name">${t('battle.hero')}<small>Lv.${app.save?.level || 1}</small></span>${hpMarkup(hero.hp, hero.maxHp, t('battle.heroHpShort'))}</div>
-            <div class="sprite-wrap"><svg class="sprite sprite--hero" viewBox="0 0 220 260" role="img" aria-label="${attr(t('battle.hero'))}"><use href="#hero-wizard"></use></svg><span class="sprite-shadow" aria-hidden="true"></span><span class="fx-impact" aria-hidden="true"></span></div>
+            <div class="sprite-wrap">${characterAvatar(character.id, character.outfitTier, 'sprite sprite--hero')}<span class="sprite-shadow" aria-hidden="true"></span><span class="fx-impact" aria-hidden="true"></span></div>
             ${combo > 1 ? `<span class="streak-badge">${icon('icon-bolt')}${t('battle.streak', { n: combo })}</span>` : ''}
           </div>
           <div class="arena-center" aria-hidden="true"><span class="vs">VS</span><span class="arena-turn">${t('battle.round', { n: question.seq + 1 })}</span></div>
@@ -387,7 +403,7 @@ function battleHTML() {
           ${feedback?.correct && feedback.combo > 1 ? `<span class="fx-combo" aria-hidden="true">×${feedback.combo}</span>` : ''}
         </div>
         <div class="question-panel">
-          <div class="question-head"><span class="spell-tag">${icon(`icon-${domain?.id || 'numbers'}`)}${t(`domain.${domain?.id || 'numbers'}.spell`)}</span><span class="question-round">${t('battle.progress', { n: question.seq + 1, total: question.total })}</span></div>
+          <div class="question-head"><span class="spell-tag">${icon(character.icon || `icon-${domain?.id || 'numbers'}`)}${locText(castName)}${ultimate ? ` · ${t('battle.ultimate')}` : ''}</span><span class="question-round">${t('battle.progress', { n: question.seq + 1, total: question.total })}</span></div>
           <p class="question-prompt" id="question-prompt">${locText(question.stem)}</p>
           <p class="question-skill">${icon('icon-book')}${locText(question.skill)}</p>
           ${app.hint ? `<div class="hint-box"><b>${t('battle.hintRevealed')}</b><p>${locText(app.hint)}</p></div>` : ''}
@@ -412,6 +428,7 @@ function resultHTML() {
   const result = payload.result;
   const found = stageFromSession();
   const stage = found?.stage;
+  const resultCharacter = result.character || null;
   return `
     <section class="screen screen--result" style="--accent:${found?.domain?.accent || '#8b5cf6'};--accent-soft:${found?.domain?.accent || '#8b5cf6'}22"><div class="wrap result-wrap">
       <div class="result-card ${result.victory ? 'is-victory' : 'is-defeat'}">
@@ -427,9 +444,11 @@ function resultHTML() {
           <div class="result-stat"><span>${t('common.coins')}</span><b class="is-coin">${t('result.coinGain', { coins: result.coins })}</b></div>
           <div class="result-stat"><span>${t('result.starCurrency')}</span><b class="is-star">${t('result.starGain', { stars: result.starCurrency })}</b></div>
           <div class="result-stat"><span>${t('result.bestStreak')}</span><b>×${result.bestStreak}</b></div>
-          <div class="result-stat"><span>${t('common.level')}</span><b>${result.level}</b></div>
+          <div class="result-stat"><span>${t('result.characterLevel')}</span><b>${resultCharacter ? `${locText(resultCharacter.name)} Lv.${resultCharacter.level}` : result.level}</b></div>
         </div>
         ${result.levelUp ? `<p class="level-up">${icon('icon-bolt')}${t('result.levelUp', { level: result.level })}</p>` : ''}
+        ${resultCharacter?.unlockedOutfit ? `<p class="unlock-banner">${icon('icon-star')}${t('result.newOutfit')}：${locText(resultCharacter.unlockedOutfit)}</p>` : ''}
+        ${resultCharacter?.unlockedSpell ? `<p class="unlock-banner">${icon('icon-bolt')}${t('result.newSpell')}：${locText(resultCharacter.unlockedSpell)}</p>` : ''}
         <div class="result-actions">
           ${result.kind === 'STAGE' ? `<button class="btn btn--primary" type="button" data-action="retry">${icon('icon-arrow', 'icon--flip')}${t('result.retry')}</button>` : ''}
           ${payload.nextStage ? `<button class="btn btn--secondary" type="button" data-action="next-stage" data-stage-key="${attr(payload.nextStage.stageKey)}">${t('result.nextStage')}${icon('icon-arrow')}</button>` : ''}
@@ -466,11 +485,13 @@ function growthHTML() {
   const growth = app.growth;
   if (!growth) return `<section class="screen"><div class="wrap"><p class="lead">${t('common.loading')}</p></div></section>`;
   const level = levelProgress();
+  const character = app.character;
   return `
     <section class="screen screen--content"><div class="wrap">
       <div class="screen-head"><div><p class="eyebrow">${icon('icon-star')}${t('nav.growth')}</p><h1>${t('growth.title')}</h1><p>${t('growth.lead')}</p></div></div>
-      <div class="growth-hero"><svg class="growth-avatar" viewBox="0 0 220 260" aria-hidden="true"><use href="#hero-wizard"></use></svg><div class="growth-main"><h2>${escapeHtml(app.profile?.nickname || app.user.displayName)} <span class="badge badge--violet">Lv.${level.level}</span></h2>${progressBar(level.percent, 'progress-track--lg')}<p class="hint">${level.current} / ${level.needed} ${t('common.xp')}</p><div class="growth-chips"><span class="summary-chip">${icon('icon-star', 'stat-icon stat-icon--star')}${growth.stars} ${t('common.stars')}</span><span class="summary-chip">${icon('icon-coin', 'stat-icon stat-icon--coin')}${growth.coins} ${t('common.coins')}</span><span class="summary-chip">${icon('icon-map')}${growth.clearedStages} ${t('growth.cleared')}</span></div></div></div>
+      <div class="growth-hero">${character ? characterAvatar(character.id, character.outfitTier, 'growth-avatar') : '<svg class="growth-avatar" viewBox="0 0 220 260" aria-hidden="true"><use href="#hero-wizard"></use></svg>'}<div class="growth-main"><h2>${character ? locText(character.name) : escapeHtml(app.profile?.nickname || app.user.displayName)} <span class="badge badge--violet">Lv.${level.level}</span></h2><p class="hint">${character ? `${locText(character.title)} · ${locText(character.outfitName)}` : ''}</p>${progressBar(level.percent, 'progress-track--lg')}<p class="hint">${level.current} / ${level.needed} ${t('common.xp')}</p><div class="growth-chips"><span class="summary-chip">${icon('icon-star', 'stat-icon stat-icon--star')}${growth.stars} ${t('common.stars')}</span><span class="summary-chip">${icon('icon-coin', 'stat-icon stat-icon--coin')}${growth.coins} ${t('common.coins')}</span><span class="summary-chip">${icon('icon-map')}${growth.clearedStages} ${t('growth.cleared')}</span></div>${character ? `<p class="character-trait">${icon(character.icon)}${locText(character.trait)}</p>` : ''}</div></div>
       <div class="stat-grid"><div class="stat-card"><span>${t('growth.answers')}</span><b>${growth.answers}</b></div><div class="stat-card"><span>${t('growth.correct')}</span><b>${growth.correct}</b></div><div class="stat-card"><span>${t('growth.accuracy')}</span><b>${growth.answers ? Math.round((growth.correct / growth.answers) * 100) : 0}%</b></div><div class="stat-card"><span>${t('growth.studyTime')}</span><b>${formatDuration(growth.studyMs)}</b></div></div>
+      ${character ? `<section class="content-section"><div class="section-head-row"><h2>${t('characters.roster')}</h2><button class="btn btn--ghost btn--sm" type="button" data-action="open-character-picker">${t('characters.change')}</button></div><div class="character-roster">${(app.characters || []).map((item) => `<button class="character-card ${item.selected ? 'is-selected' : ''}" type="button" data-action="select-character" data-id="${item.id}" aria-pressed="${item.selected}">${characterAvatar(item.id, item.outfitTier, 'character-card-avatar')}<span class="character-card-body"><b>${locText(item.name)}</b><small>${locText(item.title)} · Lv.${item.level}</small><small>${locText(item.outfitName)}</small></span>${item.selected ? `<span class="badge badge--violet">${t('characters.selected')}</span>` : ''}</button>`).join('')}</div><div class="character-skill-list">${character.spells.map((spell) => `<span class="skill-chip ${spell.unlocked ? '' : 'is-locked'}">${spell.unlocked ? icon('icon-bolt') : icon('icon-lock')}${locText(spell.name)}${spell.tier === 3 ? ` · ${t('characters.ultimate')}` : ''}</span>`).join('')}</div></section>` : ''}
       <section class="content-section"><h2>${t('growth.mastery')}</h2>${growth.mastery?.length ? `<div class="mastery-list">${growth.mastery.map((item) => `<div class="mastery-row"><div class="mastery-name"><b>${locText(item.name)}</b><small>${item.attempts} ${t('growth.answers')}</small></div>${progressBar(item.score)}<span class="mastery-score">${item.score}</span></div>`).join('')}</div>` : `<p class="hint">${t('growth.noMastery')}</p>`}</section>
       <section class="content-section"><h2>${t('growth.achievements')}</h2><div class="achievement-grid">${growth.achievements.map((item) => `<div class="achievement ${item.unlocked ? 'is-unlocked' : ''}"><span class="achievement-icon">${icon(item.unlocked ? 'icon-star' : 'icon-lock')}</span><b>${locText(item.name)}</b><small>${item.unlocked ? t('growth.unlocked') : t('growth.locked')}</small></div>`).join('')}</div></section>
       <section class="content-section"><h2>${t('growth.items')}</h2><div class="item-grid">${(growth.items || []).map((item) => `<div class="item-card">${icon('icon-flask')}<b>${locText(item.name)}</b><small>×${item.count}</small></div>`).join('')}</div></section>
@@ -650,6 +671,8 @@ async function bootstrap() {
     app.map = state.map;
     app.activeSession = state.activeSession;
     app.announcement = state.announcement;
+    app.character = state.character || state.user?.character || null;
+    app.characters = state.characters || [];
     app.grade = state.profile?.grade || 4;
     applySettings(state.save.settings);
     if (!app.profile?.consentAt) {
@@ -869,6 +892,8 @@ async function finishBattle() {
   const state = await api('/game/save');
   app.save = state.save;
   app.activeSession = state.activeSession;
+  app.character = state.character || app.character;
+  app.characters = state.characters || app.characters;
   app.screen = 'result';
   app.focus = 'result';
   playSound(payload.result?.victory ? 'victory' : 'defeat');
@@ -963,6 +988,40 @@ function openCreateChildDialog() {
       });
     },
   });
+}
+
+async function openCharacterPicker() {
+  if (!app.characters?.length) {
+    const data = await api('/game/characters');
+    app.characters = data.characters || [];
+  }
+  const cards = app.characters.map((item) => `
+    <button class="character-pick ${item.selected ? 'is-selected' : ''}" type="button" data-action="select-character" data-id="${item.id}">
+      ${characterAvatar(item.id, item.outfitTier, 'character-pick-avatar')}
+      <span class="character-pick-name">${locText(item.name)} <small>${locText(item.title)}</small></span>
+      <span class="badge ${item.selected ? 'badge--violet' : 'badge--muted'}">Lv.${item.level}${item.selected ? ` · ${t('characters.selected')}` : ''}</span>
+      <span class="character-pick-desc">${locText(item.blurb)}</span>
+      <span class="character-pick-trait">${icon(item.icon)}${locText(item.trait)}</span>
+      <span class="character-pick-outfit">${t('characters.outfit')}：${locText(item.outfitName)}</span>
+      <span class="character-pick-spells">${item.spells.map((spell) => `<span class="skill-chip ${spell.unlocked ? '' : 'is-locked'}">${spell.unlocked ? icon('icon-bolt') : icon('icon-lock')}${locText(spell.name)}</span>`).join('')}</span>
+    </button>`).join('');
+  openDialog({
+    title: t('characters.title'),
+    body: `<p class="modal-lead">${t('characters.lead')}</p><div class="character-grid">${cards}</div><p class="hint">${t('characters.difficultyFx')}</p>`,
+    cancelLabel: t('common.close'),
+  });
+}
+
+async function selectCharacter(id) {
+  const result = await api(`/game/characters/${id}/select`, { method: 'POST', body: {} });
+  app.character = result.selected;
+  app.characters = result.characters;
+  if (app.save) {
+    app.save = { ...app.save, xp: result.selected.xp, level: result.selected.level, levelProgress: result.selected.levelProgress };
+  }
+  closeDialog();
+  render({ keepScroll: true });
+  showToast(t('toast.characterSelected', { name: loc(result.selected.name) }));
 }
 
 function openTutorialAgain() {
@@ -1106,6 +1165,8 @@ function handleClick(event) {
     case 'toggle-motion': run(() => updateSetting({ reducedMotion: !app.settings.reducedMotion })); break;
     case 'howto': openHowTo(); break;
     case 'replay-tutorial': openTutorialAgain(); break;
+    case 'open-character-picker': run(openCharacterPicker); break;
+    case 'select-character': run(() => selectCharacter(target.dataset.id)); break;
     case 'coming-soon': showToast(t('toast.comingSoon')); break;
     case 'start-battle': run(() => startBattle(target.dataset.stageKey)); break;
     case 'resume-session': run(resumeSession); break;

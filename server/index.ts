@@ -76,6 +76,7 @@ import {
 } from './modules/imports.ts';
 import { createJob, getJob, listJobs, processJob, resumePendingJobs, reviewItem } from './modules/ai.ts';
 import { familyBundle, readConfig, stageStates, writeConfig } from './modules/common.ts';
+import { characterList, selectCharacterForUser } from './modules/characters.ts';
 import { audit } from './lib/auth.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -175,6 +176,22 @@ const routes: Route[] = [
     },
   },
   { method: 'GET', path: '/api/v1/inventory', auth: ['student'], handler: (ctx) => inventory(db, ctx.user!.id) },
+  {
+    method: 'GET',
+    path: '/api/v1/game/characters',
+    auth: ['student'],
+    handler: (ctx) => ({ characters: characterList(db, ctx.user!.id) }),
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/game/characters/:id/select',
+    auth: ['student'],
+    handler: async (ctx) => {
+      const selected = selectCharacterForUser(db, ctx.user!.id, ctx.params.id);
+      audit(db, ctx.user!, 'CHARACTER_SELECT', 'character', ctx.params.id, null, { selected: ctx.params.id }, ctx.ip, ctx.requestId);
+      return selected;
+    },
+  },
   {
     method: 'GET',
     path: '/api/v1/announcement',
