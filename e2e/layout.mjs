@@ -28,6 +28,15 @@ try {
       if (dims.scroll > dims.viewport + 1 || dims.body > dims.viewport + 1) {
         failures.push({ width, height, screen, dims });
       }
+      if (screen === 'map' && width <= 900) {
+        const mapScroll = await page.evaluate(() => {
+          const shell = document.querySelector('.worldmap-shell');
+          return { scroll: shell?.scrollWidth || 0, client: shell?.clientWidth || 0, nodes: document.querySelectorAll('.map-node').length };
+        });
+        if (mapScroll.nodes !== 12 || mapScroll.scroll <= mapScroll.client) {
+          failures.push({ width, height, screen: 'map-scroll', dims: mapScroll });
+        }
+      }
     }
     console.log('audit battle', width, height);
     await startStage(page, 'g4-numbers-2');

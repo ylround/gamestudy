@@ -492,4 +492,12 @@ export default {
   'battle.phaseCounter': '怪物反击',
   'battle.phaseVictory': '胜利',
   'battle.phaseDefeat': '战败',
+  'map.stageShort': '第 {n} 关',
+  'map.regionProgress': '{stars}/{max} 星',
+  'map.youAreHere': '你在这里',
+  'map.legendCleared': '已通关',
+  'map.legendCurrent': '当前关卡',
+  'map.legendLocked': '未解锁',
+  'map.independent': '四大领域独立解锁',
+  'map.panHint': '左右滑动查看整张地图',
 };

@@ -112,6 +112,7 @@ data/                      运行时 SQLite（已 gitignore）
 
 ## 文档
 
+- [冒险地图设计](docs/WORLD_MAP_DESIGN.md)
 - [战斗与答题节奏设计](docs/BATTLE_DESIGN.md)
 - [架构与数据模型](docs/ARCHITECTURE.md)
 - [API 清单](docs/API.md)
@@ -120,6 +121,7 @@ data/                      运行时 SQLite（已 gitignore）
 - [安全、隐私与儿童数据](docs/SECURITY_PRIVACY.md)
 - [P0 视觉证据](docs/screenshots/p0/README.md)
 - [战斗可见性与动画对比](docs/screenshots/battle-fx/README.md)
+- [冒险地图对比](docs/screenshots/world-map/README.md)
 
 ## 范围与限制（务必阅读）
 

@@ -26,7 +26,9 @@ try {
     await login(page, server.baseUrl, 'xiaoyu', 'demo1234');
     assert.ok(['home', 'map'].includes(await page.evaluate(() => window.__mathrealms.app.screen)));
     await openScreen(page, 'map');
-    assert.ok((await page.locator('.stage-row').count()) >= 12);
+    assert.ok((await page.locator('.map-node').count()) >= 12);
+    assert.equal(await page.locator('.map-region-label').count(), 4);
+    assert.equal(await page.locator('.worldmap-trail-line').count(), 1);
     await startStage(page, 'g4-numbers-2');
     assert.equal(await page.evaluate(() => window.__mathrealms.app.screen), 'battle');
     await playStageToResult(page, db);

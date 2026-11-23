@@ -1,6 +1,7 @@
 import { GRADES, SUBJECTS } from '../content/config.js';
 import { getLang, localize, setLang, t } from '../i18n/index.js';
 import { api, clearToken, download, getToken, setToken } from './api.js';
+import { worldMapHTML } from './worldmap.js';
 
 const app = {
   screen: 'loading',
@@ -311,18 +312,7 @@ function mapHTML() {
         <span class="summary-chip">${icon('icon-rune')} ${app.save?.level ?? 1} ${t('common.level')}</span>
         <span class="summary-chip">${icon('icon-coin', 'stat-icon stat-icon--coin')} ${app.save?.coins ?? 0} ${t('common.coins')}</span>
       </div>
-      <div class="realm-grid">${map.domains.map((domain) => {
-        const accent = domain.accent || '#8b5cf6';
-        const realmStars = domain.stages.reduce((sum, stage) => sum + (stage.bestStars || 0), 0);
-        return `<article class="realm-card" style="--accent:${accent};--accent-soft:${accent}22">
-          <header class="realm-head"><span class="realm-icon">${icon(`icon-${domain.id}`)}</span><div class="realm-title"><h2>${locText({ zh: domain.nameZh, en: domain.nameEn })}</h2><p>${t(`domain.${domain.id}.desc`)}</p></div><span class="realm-stars">${icon('icon-star', 'stat-icon stat-icon--star')}<b>${realmStars}</b><small>/${domain.stages.length * 3}</small></span></header>
-          <div class="stage-list">${domain.stages.map((stage) => `<button class="stage-row ${stage.unlocked ? '' : 'is-locked'}" type="button" data-action="start-battle" data-stage-key="${attr(stage.key)}" ${stage.unlocked ? '' : 'disabled'} aria-label="${attr(`${loc(stage.name)} · ${loc(stage.monster.name)} · ${t('map.stageStars', { stars: stage.bestStars })}${stage.unlocked ? '' : ` · ${t('aria.lockedStage')}`}`)}">
-            <span class="stage-monster">${icon(`monster-${stage.monster.id}`)}</span>
-            <span class="stage-body"><span class="stage-name">${locText(stage.name)}</span><span class="stage-meta">${locText(stage.monster.name)} · ${t('map.skill')}: ${locText(stage.name)}</span></span>
-            <span class="stage-right">${starsHTML(stage.bestStars, 3, 'stars--sm')}<span class="stage-action">${stage.unlocked ? (stage.completed ? t('common.replay') : t('common.challenge')) : `${icon('icon-lock')}${t('common.locked')}`}</span></span>
-          </button>`).join('')}</div>
-        </article>`;
-      }).join('')}</div>
+      ${worldMapHTML(map, { currentKey: app.activeSession?.stageKey })}
     </div></section>`;
 }
 

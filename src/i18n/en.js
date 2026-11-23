@@ -492,4 +492,12 @@ export default {
   'battle.phaseCounter': 'Monster counters',
   'battle.phaseVictory': 'Victory',
   'battle.phaseDefeat': 'Defeat',
+  'map.stageShort': 'Stage {n}',
+  'map.regionProgress': '{stars}/{max} stars',
+  'map.youAreHere': 'You are here',
+  'map.legendCleared': 'Cleared',
+  'map.legendCurrent': 'Current',
+  'map.legendLocked': 'Locked',
+  'map.independent': 'Four realms unlock independently',
+  'map.panHint': 'Swipe to explore the whole map',
 };

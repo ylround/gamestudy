@@ -70,7 +70,7 @@ export async function openScreen(page, screen) {
 
 export async function startStage(page, stageKey) {
   await openScreen(page, 'map');
-  const selector = stageKey ? `[data-stage-key="${stageKey}"]` : '.stage-row:not([disabled])';
+  const selector = stageKey ? `[data-stage-key="${stageKey}"]` : '.map-node:not([disabled])';
   const stage = page.locator(selector).first();
   if (!(await stage.count())) throw new Error(`No stage ${stageKey || 'unlocked'}`);
   await stage.click();
