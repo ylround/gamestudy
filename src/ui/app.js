@@ -195,6 +195,10 @@ function renderTopbar() {
       <span class="user-chip" title="${attr(app.user.displayName)}">${escapeHtml(app.profile?.nickname || app.user.displayName)}</span>
       <button class="icon-btn" type="button" data-action="logout" aria-label="${attr(t('nav.logout'))}" title="${attr(t('nav.logout'))}">${icon('icon-close')}</button>
     </div>`;
+  requestAnimationFrame(() => {
+    const height = Math.ceil(topbar.getBoundingClientRect().height);
+    if (height > 0) document.documentElement.style.setProperty('--topbar-height', `${height}px`);
+  });
 }
 
 /* Auth / onboarding ------------------------------------------------- */
@@ -365,27 +369,30 @@ function battleHTML() {
   const combo = Number(battle.combo) || 0;
   const monster = battle.monster || (stage ? { ...stage.monster, maxHp: stage.monster.hp } : { id: 'mossling', name: { zh: '怪物', en: 'Monster' }, hp: 130, maxHp: 130 });
   const hero = battle.hero || { hp: 100, maxHp: 100 };
+  const finalClass = feedback && Number(feedback.monsterHp) <= 0 ? 'is-victory' : feedback && Number(feedback.heroHp) <= 0 ? 'is-defeat' : '';
+  const phase = feedback ? (Number(feedback.monsterHp) <= 0 ? 'victory' : Number(feedback.heroHp) <= 0 ? 'defeat' : feedback.correct ? 'cast' : 'counter') : 'answer';
   return `
-    <section class="screen screen--battle ${feedback ? (feedback.correct ? 'is-correct' : 'is-wrong') : ''}" style="--accent:${domain?.accent || '#8b5cf6'};--accent-soft:${domain?.accent || '#8b5cf6'}22">
+    <section class="screen screen--battle ${feedback ? (feedback.correct ? 'is-correct' : 'is-wrong') : ''} ${finalClass}" data-phase="${phase}" style="--accent:${domain?.accent || '#8b5cf6'};--accent-soft:${domain?.accent || '#8b5cf6'}22">
       <h1 class="visually-hidden">${locText(stage?.name)}</h1>
       <div class="battle-wrap">
         <div class="battle-toolbar">
           <button class="btn btn--ghost btn--sm" type="button" data-action="leave-battle">${icon('icon-arrow', 'icon--flip')}${t('battle.leave')}</button>
           <div class="battle-context"><span class="battle-context-icon">${icon(`icon-${domain?.id || 'numbers'}`)}</span><span>${locText(stage?.name)}</span></div>
+          <span class="battle-phase phase--${phase}">${phase === 'answer' ? t('battle.phaseAnswer') : phase === 'cast' ? t('battle.phaseCast') : phase === 'counter' ? t('battle.phaseCounter') : phase === 'victory' ? t('battle.phaseVictory') : t('battle.phaseDefeat')}</span>
           <span class="battle-round">${t('battle.progress', { n: question.seq + 1, total: question.total })}</span>
         </div>
         <div class="arena">
           <div class="arena-glow" aria-hidden="true"></div>
+          ${feedback ? `<span class="fx-projectile ${feedback.correct ? 'fx-projectile--hero' : 'fx-projectile--monster'}" aria-hidden="true"></span><span class="fx-spell ${feedback.correct ? 'fx-spell--cast' : 'fx-spell--counter'}" aria-hidden="true">${t(`domain.${domain?.id || 'numbers'}.spell`)}</span><span class="fx-flash" aria-hidden="true"></span><span class="fx-damage ${feedback.correct ? 'fx-damage--monster' : 'fx-damage--hero'}" aria-hidden="true">-${feedback.damage}</span>` : ''}
           <div class="fighter fighter--hero">
             <div class="fighter-top"><span class="fighter-name">${t('battle.hero')}<small>Lv.${app.save?.level || 1}</small></span>${hpMarkup(hero.hp, hero.maxHp, t('battle.heroHpShort'))}</div>
-            <div class="sprite-wrap"><svg class="sprite sprite--hero" viewBox="0 0 220 260" role="img" aria-label="${attr(t('battle.hero'))}"><use href="#hero-wizard"></use></svg><span class="sprite-shadow" aria-hidden="true"></span></div>
+            <div class="sprite-wrap"><svg class="sprite sprite--hero" viewBox="0 0 220 260" role="img" aria-label="${attr(t('battle.hero'))}"><use href="#hero-wizard"></use></svg><span class="sprite-shadow" aria-hidden="true"></span><span class="fx-impact" aria-hidden="true"></span></div>
             ${combo > 1 ? `<span class="streak-badge">${icon('icon-bolt')}${t('battle.streak', { n: combo })}</span>` : ''}
           </div>
           <div class="arena-center" aria-hidden="true"><span class="vs">VS</span><span class="arena-turn">${t('battle.round', { n: question.seq + 1 })}</span></div>
           <div class="fighter fighter--monster">
             <div class="fighter-top"><span class="fighter-name">${locText(monster.name || { zh: monster.nameZh, en: monster.nameEn })}</span>${hpMarkup(monster.hp, monster.maxHp || stage?.monster?.hp || 130, t('battle.monsterHpShort'))}</div>
-            <div class="sprite-wrap"><svg class="sprite sprite--monster" viewBox="0 0 240 220" role="img" aria-label="${attr(loc(monster.name || { zh: monster.nameZh, en: monster.nameEn }))}"><use href="#monster-${monster.id || 'mossling'}"></use></svg><span class="sprite-shadow" aria-hidden="true"></span></div>
-            ${feedback ? `<span class="fx-damage ${feedback.correct ? 'fx-damage--monster' : 'fx-damage--hero'}">-${feedback.damage}</span>` : ''}
+            <div class="sprite-wrap"><svg class="sprite sprite--monster" viewBox="0 0 240 220" role="img" aria-label="${attr(loc(monster.name || { zh: monster.nameZh, en: monster.nameEn }))}"><use href="#monster-${monster.id || 'mossling'}"></use></svg><span class="sprite-shadow" aria-hidden="true"></span><span class="fx-impact" aria-hidden="true"></span></div>
           </div>
           ${feedback?.correct && feedback.combo > 1 ? `<span class="fx-combo" aria-hidden="true">×${feedback.combo}</span>` : ''}
         </div>
@@ -588,6 +595,7 @@ function render({ focus = null, keepScroll = false } = {}) {
   else if (app.screen === 'settings') main.innerHTML = settingsHTML();
   else main.innerHTML = homeHTML();
   if (scrollY != null) window.scrollTo({ top: scrollY, behavior: 'auto' });
+  else window.scrollTo({ top: 0, behavior: 'auto' });
   const target = focus || app.focus;
   if (target) {
     app.focus = null;
@@ -599,8 +607,13 @@ function applyFocus(target) {
   const selectors = { main: '#main', feedback: '#feedback', answer: '.answer:not(:disabled), #answer-input', result: '.result-title' };
   const element = document.querySelector(selectors[target] || target);
   if (element) {
-    element.focus({ preventScroll: false });
-    if (target === 'feedback') element.scrollIntoView({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    if (target === 'feedback') {
+      element.focus({ preventScroll: true });
+      const panel = element.closest('.question-panel');
+      if (panel) panel.scrollTo({ top: panel.scrollHeight, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+      return;
+    }
+    element.focus({ preventScroll: true });
   }
 }
 

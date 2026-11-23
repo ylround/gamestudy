@@ -487,4 +487,9 @@ export default {
   'toast.abandoned': '已放弃这场战斗',
   'toast.sessionResumed': '已恢复未完成的战斗',
   'toast.gradeChanged': '年级已切换',
+  'battle.phaseAnswer': '你的回合 · 答题施法',
+  'battle.phaseCast': '施法命中',
+  'battle.phaseCounter': '怪物反击',
+  'battle.phaseVictory': '胜利',
+  'battle.phaseDefeat': '战败',
 };

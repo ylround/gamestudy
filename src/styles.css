@@ -3631,3 +3631,465 @@ html.is-reduced-motion *::after {
   color: var(--ink);
   font-size: 13px;
 }
+
+/* ==========================================================================
+   Battle stage: keep the arena visible and make every turn feel physical
+   ========================================================================== */
+
+.screen--battle {
+  height: calc(100vh - 72px);
+  height: calc(100dvh - 72px);
+  min-height: 520px;
+  padding: 10px 0 14px;
+  overflow: hidden;
+}
+
+.battle-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: min(1180px, calc(100% - 24px));
+}
+
+.battle-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.battle-phase {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.phase--cast,
+.phase--victory {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.12);
+  color: #86efac;
+}
+
+.phase--counter,
+.phase--defeat {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.12);
+  color: #fda4af;
+}
+
+.screen--battle .arena {
+  flex: 1 1 auto;
+  min-height: 210px;
+  max-height: none;
+}
+
+.screen--battle .question-panel {
+  flex: 0 1 auto;
+  min-height: 190px;
+  max-height: 48%;
+  margin-top: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(167, 139, 250, 0.55) transparent;
+}
+
+.screen--battle .question-panel::-webkit-scrollbar {
+  width: 7px;
+}
+
+.screen--battle .question-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.55);
+}
+
+/* Attack / hit motion */
+
+.screen--battle.is-correct .sprite--hero {
+  animation: heroStrike 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.screen--battle.is-correct .sprite--monster {
+  animation: monsterStruck 0.95s ease both;
+}
+
+.screen--battle.is-wrong .sprite--monster {
+  animation: monsterStrike 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.screen--battle.is-wrong .sprite--hero {
+  animation: heroStruck 0.95s ease both;
+}
+
+.screen--battle.is-wrong .arena {
+  animation: arenaShake 0.5s ease both;
+}
+
+.screen--battle.is-victory .sprite--monster {
+  animation: monsterStruck 0.95s ease both, monsterDefeat 1s 0.55s ease both;
+}
+
+.screen--battle.is-defeat .sprite--hero {
+  animation: heroStruck 0.95s ease both, heroDefeat 1s 0.55s ease both;
+}
+
+.screen--battle.is-correct .fighter--monster .hp-bar,
+.screen--battle.is-wrong .fighter--hero .hp-bar {
+  animation: hpDamage 0.7s 0.2s ease both;
+}
+
+.screen--battle.is-correct .spell-tag {
+  animation: spellTagPulse 0.8s 0.15s ease both;
+}
+
+@keyframes heroStrike {
+  0% { transform: scale(1.06) translate(0, 0) rotate(0); }
+  24% { transform: scale(1.12) translate(10px, -16px) rotate(4deg); filter: drop-shadow(0 0 20px rgba(103, 232, 249, 0.75)); }
+  48% { transform: scale(1.04) translate(38px, -6px) rotate(-4deg); filter: drop-shadow(0 0 28px rgba(139, 92, 246, 0.95)); }
+  70% { transform: scale(1.06) translate(-15px, 3px) rotate(2deg); }
+  100% { transform: scale(1.06) translate(0, 0) rotate(0); }
+}
+
+@keyframes monsterStruck {
+  0%, 100% { transform: translateX(0) rotate(0); filter: drop-shadow(0 20px 22px rgba(0, 0, 0, 0.4)); }
+  18% { transform: translateX(20px) rotate(5deg) scale(0.96); filter: brightness(2.5) drop-shadow(0 0 26px rgba(255, 255, 255, 0.95)); }
+  38% { transform: translateX(-12px) rotate(-4deg); filter: brightness(1.4) drop-shadow(0 0 18px rgba(251, 113, 133, 0.8)); }
+  62% { transform: translateX(7px) rotate(2deg); }
+  82% { transform: translateX(-3px); }
+}
+
+@keyframes monsterStrike {
+  0% { transform: translateX(0) scale(1); }
+  25% { transform: translateX(18px) scale(1.06); filter: drop-shadow(0 0 18px rgba(251, 113, 133, 0.8)); }
+  50% { transform: translateX(-42px) scale(1.04); filter: brightness(1.55) drop-shadow(0 0 28px rgba(251, 113, 133, 0.9)); }
+  74% { transform: translateX(9px) scale(1); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes heroStruck {
+  0%, 100% { transform: scale(1.06) translateX(0); filter: drop-shadow(0 20px 22px rgba(0, 0, 0, 0.4)); }
+  20% { transform: scale(1.06) translateX(18px) rotate(5deg); filter: brightness(2.2) drop-shadow(0 0 24px rgba(251, 113, 133, 0.95)); }
+  45% { transform: scale(1.06) translateX(-13px) rotate(-4deg); filter: brightness(1.3) drop-shadow(0 0 18px rgba(251, 113, 133, 0.65)); }
+  72% { transform: scale(1.06) translateX(5px); }
+}
+
+@keyframes arenaShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px) rotate(-0.4deg); }
+  40% { transform: translateX(7px) rotate(0.4deg); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+@keyframes hpDamage {
+  0%, 100% { box-shadow: none; filter: none; }
+  25% { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 0 20px rgba(251, 113, 133, 0.85); filter: brightness(1.6); }
+}
+
+@keyframes spellTagPulse {
+  0%, 100% { transform: scale(1); box-shadow: none; }
+  40% { transform: scale(1.08); box-shadow: 0 0 18px var(--accent-soft); }
+}
+
+@keyframes monsterDefeat {
+  0% { opacity: 1; transform: translateX(0) rotate(0) scale(1); }
+  100% { opacity: 0; transform: translateY(34px) rotate(-9deg) scale(0.72); }
+}
+
+@keyframes heroDefeat {
+  0% { opacity: 1; transform: scale(1.06) translateY(0); }
+  100% { opacity: 0; transform: scale(0.82) translateY(30px) rotate(8deg); }
+}
+
+/* Flying spell / counter projectile */
+
+.fx-projectile {
+  position: absolute;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 32% 30%, #fff 0 12%, #b9f6ff 22%, var(--accent) 48%, transparent 72%);
+  box-shadow: 0 0 18px var(--accent), 0 0 46px var(--accent-soft);
+}
+
+.fx-projectile::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 68%;
+  width: 86px;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--accent));
+  filter: blur(3px);
+  opacity: 0.8;
+}
+
+.fx-projectile--hero {
+  left: 25%;
+  top: 48%;
+  animation: projectileToMonster 0.72s 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.fx-projectile--monster {
+  right: 25%;
+  top: 48%;
+  background: radial-gradient(circle at 32% 30%, #fff 0 12%, #ffd6dc 22%, #fb7185 48%, transparent 72%);
+  box-shadow: 0 0 18px #fb7185, 0 0 46px rgba(251, 113, 133, 0.4);
+  animation: projectileToHero 0.72s 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.fx-projectile--monster::after {
+  right: auto;
+  left: 68%;
+  background: linear-gradient(270deg, transparent, #fb7185);
+}
+
+@keyframes projectileToMonster {
+  0% { transform: translate(0, 0) scale(0.35); opacity: 0; }
+  18% { opacity: 1; }
+  55% { transform: translate(28vw, -8vh) scale(1.15); opacity: 1; }
+  100% { transform: translate(45vw, -12vh) scale(1.8); opacity: 0; }
+}
+
+@keyframes projectileToHero {
+  0% { transform: translate(0, 0) scale(0.35); opacity: 0; }
+  18% { opacity: 1; }
+  55% { transform: translate(-28vw, -8vh) scale(1.15); opacity: 1; }
+  100% { transform: translate(-45vw, -12vh) scale(1.8); opacity: 0; }
+}
+
+.fx-spell {
+  position: absolute;
+  z-index: 3;
+  top: 13%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--cyan);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 34px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 24px var(--accent), 0 3px 0 rgba(0, 0, 0, 0.4);
+  animation: spellCall 1s 0.15s ease both;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.fx-spell--counter {
+  color: #fda4af;
+  text-shadow: 0 0 24px rgba(251, 113, 133, 0.85), 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+@keyframes spellCall {
+  0% { opacity: 0; transform: translate(-50%, 14px) scale(0.7); }
+  30% { opacity: 1; transform: translate(-50%, 0) scale(1.06); }
+  72% { opacity: 1; transform: translate(-50%, -4px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -22px) scale(1.02); }
+}
+
+.fx-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  background: radial-gradient(circle at 70% 42%, rgba(255, 255, 255, 0.7), transparent 34%);
+  opacity: 0;
+  pointer-events: none;
+  animation: impactFlash 0.5s 0.32s ease-out both;
+}
+
+.screen--battle.is-wrong .fx-flash {
+  background: radial-gradient(circle at 26% 46%, rgba(251, 113, 133, 0.6), transparent 34%);
+}
+
+@keyframes impactFlash {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.fx-impact {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  z-index: 2;
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.2);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(251, 191, 36, 0.5) 26%, transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.screen--battle.is-correct .fighter--monster .fx-impact {
+  animation: impactBurst 0.55s 0.38s ease-out both;
+}
+
+.screen--battle.is-wrong .fighter--hero .fx-impact {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(251, 113, 133, 0.5) 26%, transparent 62%);
+  animation: impactBurst 0.55s 0.38s ease-out both;
+}
+
+@keyframes impactBurst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  24% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+}
+
+/* Damage numbers belong to the arena, not the fighter, so they land on the
+   actual target even when the panel layers change. */
+
+.screen--battle .fx-damage {
+  top: 34%;
+  z-index: 5;
+  font-size: clamp(30px, 4.6vw, 48px);
+  animation: damageFloat2 1.15s 0.28s ease-out both;
+}
+
+.screen--battle .fx-damage--monster {
+  right: 22%;
+  color: #fecdd3;
+}
+
+.screen--battle .fx-damage--hero {
+  left: 22%;
+  color: #fca5a5;
+}
+
+@keyframes damageFloat2 {
+  0% { opacity: 0; transform: translateY(16px) scale(0.6); }
+  22% { opacity: 1; transform: translateY(-4px) scale(1.18); }
+  100% { opacity: 0; transform: translateY(-60px) scale(1); }
+}
+
+@media (max-width: 760px) {
+  .screen--battle {
+    height: calc(100vh - 118px);
+    height: calc(100dvh - 118px);
+    min-height: 500px;
+    padding: 6px 0 8px;
+  }
+
+  .battle-wrap {
+    width: calc(100% - 16px);
+  }
+
+  .screen--battle .arena {
+    min-height: 190px;
+  }
+
+  .screen--battle .question-panel {
+    max-height: 46%;
+    min-height: 180px;
+    padding: 13px;
+  }
+
+  .battle-phase {
+    display: none;
+  }
+
+  .screen--battle .fx-spell {
+    top: 8%;
+    font-size: 18px;
+  }
+
+  .screen--battle .fx-damage {
+    top: 31%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen--battle .fx-projectile,
+  .screen--battle .fx-spell,
+  .screen--battle .fx-damage,
+  .screen--battle .fx-impact,
+  .screen--battle .fx-flash {
+    display: none;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1020px) {
+  .screen--battle {
+    height: calc(100vh - 92px);
+    height: calc(100dvh - 92px);
+  }
+}
+
+/* Keep the brand on one line before the mobile breakpoint; this also keeps the
+   top bar at its designed 72 px height, which the battle stage uses for sizing. */
+.brand {
+  flex: 0 0 auto;
+}
+
+.brand-text b,
+.brand-text small {
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .user-chip {
+    display: none;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1020px) {
+  .screen--battle {
+    height: calc(100vh - 72px);
+    height: calc(100dvh - 72px);
+  }
+}
+
+@media (max-width: 460px) {
+  .screen--battle {
+    min-height: 0;
+  }
+
+  .battle-toolbar {
+    gap: 6px;
+  }
+
+  .battle-context span:last-child {
+    max-width: 30vw;
+  }
+
+  .battle-round {
+    font-size: 10px;
+  }
+
+  .screen--battle .arena {
+    min-height: 170px;
+  }
+
+  .screen--battle .question-panel {
+    min-height: 150px;
+    max-height: 40%;
+    padding: 11px;
+  }
+}
+
+/* The top bar height changes when the mobile nav wraps; measure it in JS and
+   use the real value instead of a hard-coded viewport offset. */
+.screen--battle {
+  height: calc(100vh - var(--topbar-height, 72px));
+  height: calc(100dvh - var(--topbar-height, 72px));
+}
+
+@media (max-width: 760px) {
+  .screen--battle {
+    height: calc(100vh - var(--topbar-height, 113px));
+    height: calc(100dvh - var(--topbar-height, 113px));
+  }
+}

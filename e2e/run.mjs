@@ -43,6 +43,50 @@ try {
   });
 
 
+
+  await check('student: battle keeps arena visible and plays cast FX', async () => {
+    const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(String(error)));
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+    await login(page, server.baseUrl, 'xiaoyu', 'demo1234');
+    await startStage(page, 'g4-geometry-1');
+    const before = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      viewport: window.innerHeight,
+      arena: document.querySelector('.arena')?.getBoundingClientRect().toJSON(),
+      panel: document.querySelector('.question-panel')?.getBoundingClientRect().toJSON(),
+    }));
+    assert.equal(before.scrollY, 0);
+    assert.ok(before.arena.top >= 0 && before.arena.bottom <= before.viewport);
+    assert.ok(before.panel.bottom <= before.viewport + 1);
+    await answerCurrentCorrectly(page, db);
+    await page.waitForTimeout(220);
+    const mid = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      viewport: window.innerHeight,
+      arena: document.querySelector('.arena')?.getBoundingClientRect().toJSON(),
+      panel: document.querySelector('.question-panel')?.getBoundingClientRect().toJSON(),
+      projectiles: document.querySelectorAll('.fx-projectile').length,
+      impacts: document.querySelectorAll('.fx-impact').length,
+      damage: document.querySelectorAll('.fx-damage').length,
+      phase: document.querySelector('.battle-phase')?.textContent || '',
+    }));
+    assert.equal(mid.scrollY, 0);
+    assert.ok(mid.arena.top >= 0 && mid.arena.bottom <= mid.viewport);
+    assert.ok(mid.panel.bottom <= mid.viewport + 1);
+    assert.ok(mid.projectiles >= 1);
+    assert.ok(mid.impacts >= 1);
+    assert.ok(mid.damage >= 1);
+    assert.ok(mid.phase.length > 0);
+    await page.locator('[data-action="leave-battle"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('.modal-actions [data-action="dialog-confirm"]').click();
+    await page.waitForTimeout(600);
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+
   await check('student: hint, resume after reload and abandon', async () => {
     const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
     await login(page, server.baseUrl, 'xiaoyu', 'demo1234');

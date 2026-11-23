@@ -31,8 +31,18 @@ try {
     }
     console.log('audit battle', width, height);
     await startStage(page, 'g4-numbers-2');
-    const battle = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+    const battle = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      viewport: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      scrollY: window.scrollY,
+      arena: document.querySelector('.arena')?.getBoundingClientRect().toJSON(),
+      panel: document.querySelector('.question-panel')?.getBoundingClientRect().toJSON(),
+    }));
     if (battle.scroll > battle.viewport + 1) failures.push({ width, height, screen: 'battle', dims: battle });
+    if (battle.scrollY !== 0 || battle.arena.bottom > battle.viewportHeight + 1 || battle.panel.bottom > battle.viewportHeight + 1) {
+      failures.push({ width, height, screen: 'battle-vertical', dims: battle });
+    }
     await context.close();
   }
 } finally {
@@ -41,4 +51,4 @@ try {
 }
 
 assert.deepEqual(failures, []);
-console.log(`Layout audit passed at ${sizes.map(([w, h]) => `${w}x${h}`).join(', ')} (no horizontal overflow)`);
+console.log(`Layout audit passed at ${sizes.map(([w, h]) => `${w}x${h}`).join(', ')} (no horizontal overflow; battle arena and question panel stay inside the viewport)`);

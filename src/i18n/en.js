@@ -487,4 +487,9 @@ export default {
   'toast.abandoned': 'Battle abandoned',
   'toast.sessionResumed': 'Battle resumed',
   'toast.gradeChanged': 'Grade changed',
+  'battle.phaseAnswer': 'Your turn · answer to cast',
+  'battle.phaseCast': 'Spell hit',
+  'battle.phaseCounter': 'Monster counters',
+  'battle.phaseVictory': 'Victory',
+  'battle.phaseDefeat': 'Defeat',
 };
